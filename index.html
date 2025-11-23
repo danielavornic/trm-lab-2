@@ -311,6 +311,49 @@
         </a-entity>
       </a-nft>
 
+      <a-nft
+        type="nft"
+        url="markers/letter/letter"
+        smooth="true"
+        smoothCount="20"
+        smoothTolerance="0.5"
+        smoothThreshold="10"
+        data-marker-id="letter"
+      >
+        <a-entity
+          position="65 -450 -100"
+          rotation="0 0 0"
+          scale="120 120 120"
+          fragment-collector="fragmentId: letter; narrativeText: An unopened letter. Some words are better left unsaid..."
+          class="interactive"
+          visible="true"
+        >
+          <a-box
+            position="0 0 0"
+            width="1.5"
+            height="1.5"
+            depth="0.5"
+            material="opacity: 0; transparent: true"
+          ></a-box>
+
+          <!-- Red wax seal -->
+          <a-cylinder
+            position="0 0 0"
+            radius="0.25"
+            height="0.05"
+            material="color: #DC143C; metalness: 0.4; roughness: 0.3"
+          >
+            <a-animation
+              attribute="rotation"
+              to="0 360 0"
+              dur="6000"
+              repeat="indefinite"
+              easing="linear"
+            ></a-animation>
+          </a-cylinder>
+        </a-entity>
+      </a-nft>
+
       <!-- COMMENTED OUT - Create letter marker first -->
       <!-- <a-nft
         type="nft"
