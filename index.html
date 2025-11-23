@@ -1,261 +1,399 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>AR Interaction Lab (No Super-Hands)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no"
+    />
+    <title>Memory Fragments - AR Experience</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- AR.js for A-Frame (marker-based AR) -->
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading AR Experience...</div>
+    </div>
 
-  <style>
-    body { margin:0; overflow:hidden; }
-    .hud {
-      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      display: grid; grid-template-columns: repeat(5, auto); gap: 8px;
-      font: 600 14px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      z-index: 10; pointer-events: none;
-    }
-    .hud.hidden { display: none; }
-    .hud button {
-      pointer-events: auto;
-      padding: 10px 12px; border: 0; border-radius: 10px;
-      background: rgba(255,255,255,.9);
-    }
-  </style>
+    <div class="ui-overlay">
+      <div class="progress-bar">
+        <span id="progressText">0/6 Fragments</span>
+        <div class="progress-fill">
+          <div class="progress-fill-inner" id="progressFill"></div>
+        </div>
+      </div>
 
-  <script>
-  // ---------- Utilities ----------
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      <div class="collected-fragments" id="fragmentsDisplay">
+        <div class="fragment-icon" data-fragment="journal">
+          <i class="fas fa-book"></i>
+        </div>
+        <div class="fragment-icon" data-fragment="toy">
+          <i class="fas fa-cube"></i>
+        </div>
+        <div class="fragment-icon" data-fragment="photo">
+          <i class="fas fa-camera"></i>
+        </div>
+        <div class="fragment-icon" data-fragment="letter">
+          <i class="fas fa-envelope"></i>
+        </div>
+        <div class="fragment-icon" data-fragment="music-box">
+          <i class="fas fa-music"></i>
+        </div>
+        <div class="fragment-icon" data-fragment="key">
+          <i class="fas fa-key"></i>
+        </div>
+      </div>
 
-  // ---------- 1) Tap / doubletap / longpress ----------
-  AFRAME.registerComponent('tap-gestures', {
-    schema: {longMs:{default:500}},
-    init () {
-      let lastTap = 0, pressTimer = null, down = false;
-      this.el.addEventListener('mousedown', () => {
-        down = true;
-        const now = performance.now();
-        if (now - lastTap < 300) this.el.emit('doubletap');
-        lastTap = now;
-        pressTimer = setTimeout(() => { if (down) this.el.emit('longpress'); }, this.data.longMs);
-      });
-      this.el.addEventListener('mouseup', () => {
-        down = false;
-        clearTimeout(pressTimer);
-        this.el.emit('tap');
-      });
-      this.el.addEventListener('touchstart', e => e.preventDefault(), {passive:false});
-    }
-  });
+      <div class="notification" id="notification"></div>
 
-  // ---------- 2) Drag on a plane (marker plane) ----------
-  // Drag with mouse/touch by intersecting an invisible plane and moving the entity to that point.
-  AFRAME.registerComponent('drag-on-plane', {
-    schema: { plane: {type: 'selector'}, yOffset: {default: 0.25}, radius: {default: 0.6} },
-    init () {
-      this.dragging = false;
-      this.scene = this.el.sceneEl;
-      this.rayEl = document.querySelector('#ray'); // scene cursor ray
-      // listen on element
-      this.el.addEventListener('mousedown', () => this.dragging = true);
-      window.addEventListener('mouseup',   () => this.dragging = false);
-      window.addEventListener('touchend',  () => this.dragging = false);
-      // move
-      this.scene.addEventListener('mousemove', (e)=> this.updateDrag());
-      this.scene.addEventListener('touchmove', (e)=> this.updateDrag());
-    },
-    updateDrag () {
-      if (!this.dragging) return;
-      if (!this.data.plane) return;
-      const raycaster = this.rayEl.getObject3D('raycaster');
-      if (!raycaster) return;
-      const planeMesh = this.data.plane.getObject3D('mesh');
-      if (!planeMesh) return;
+      <div class="narrative-panel" id="narrativePanel">
+        <button class="close-btn" id="closeNarrative">×</button>
+        <div id="narrativeText"></div>
+      </div>
 
-      // Build a THREE.Plane from the plane entity (its world transform).
-      planeMesh.updateMatrixWorld();
-      const normal = new THREE.Vector3(0,1,0).applyQuaternion(planeMesh.getWorldQuaternion(new THREE.Quaternion()));
-      const point  = planeMesh.getWorldPosition(new THREE.Vector3());
-      const plane  = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, point);
+      <div
+        style="
+          position: fixed;
+          top: 80px;
+          left: 10px;
+          background: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 10px;
+          font-size: 12px;
+          z-index: 200;
+          font-family: monospace;
+        "
+        id="debugLog"
+      >
+        Debug: Ready
+      </div>
 
-      const ray = raycaster.ray; // world-space ray from cursor
-      const hit = new THREE.Vector3();
-      if (ray.intersectPlane(plane, hit)) {
-        // constrain to radius on XZ around marker center
-        const local = this.el.parentEl.object3D.worldToLocal(hit.clone());
-        const r = Math.hypot(local.x, local.z);
-        const maxR = this.data.radius;
-        if (r > maxR){
-          const k = maxR / r;
-          local.x *= k; local.z *= k;
-        }
-        this.el.setAttribute('position', `${local.x} ${this.data.yOffset} ${local.z}`);
-      }
-    }
-  });
+      <div class="ar-tap-area" id="arTapArea"></div>
+    </div>
 
-  // ---------- 3) Pinch to scale ----------
-  AFRAME.registerComponent('pinch-scale', {
-    schema: {min:{default:0.2}, max:{default:3}},
-    init(){
-      this.active = false; this.startD = 0; this.startScale = null;
-      const onStart = (e) => {
-        if (e.touches && e.touches.length === 2){
-          this.active = true;
-          this.startD = this.dist(e.touches[0], e.touches[1]);
-          this.startScale = Object.assign({}, this.el.getAttribute('scale'));
-        }
-      };
-      const onMove = (e) => {
-        if (!this.active || !e.touches || e.touches.length < 2) return;
-        const d = this.dist(e.touches[0], e.touches[1]);
-        const mult = d / this.startD;
-        const ns = {
-          x: clamp(this.startScale.x * mult, this.data.min, this.data.max),
-          y: clamp(this.startScale.y * mult, this.data.min, this.data.max),
-          z: clamp(this.startScale.z * mult, this.data.min, this.data.max),
-        };
-        this.el.setAttribute('scale', ns);
-      };
-      const onEnd = () => this.active = false;
-      window.addEventListener('touchstart', onStart, {passive:false});
-      window.addEventListener('touchmove',  onMove,  {passive:false});
-      window.addEventListener('touchend',   onEnd);
-      window.addEventListener('touchcancel',onEnd);
-    },
-    dist(a,b){ const dx=a.clientX-b.clientX, dy=a.clientY-b.clientY; return Math.hypot(dx,dy); }
-  });
+    <a-scene
+      vr-mode-ui="enabled: false"
+      renderer="logarithmicDepthBuffer: true; colorManagement: true; physicallyCorrectLights: true"
+      embedded
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+    >
+      <a-assets timeout="1000"> </a-assets>
 
-  // ---------- 4) Twist to rotate (two-finger) ----------
-  AFRAME.registerComponent('twist-rotate', {
-    schema:{degPerRad:{default:57.2958}}, // 180/π
-    init(){
-      this.active = false; this.startA = 0; this.startRotY = 0;
-      const angle = (a,b)=> Math.atan2(b.clientY-a.clientY, b.clientX-a.clientX);
-      const onStart = (e)=>{
-        if (e.touches && e.touches.length === 2){
-          this.active = true;
-          this.startA = angle(e.touches[0], e.touches[1]);
-          this.startRotY = this.el.getAttribute('rotation').y;
-        }
-      };
-      const onMove = (e)=>{
-        if (!this.active || !e.touches || e.touches.length < 2) return;
-        const a = angle(e.touches[0], e.touches[1]);
-        const delta = (a - this.startA) * this.data.degPerRad;
-        const r = this.el.getAttribute('rotation');
-        this.el.setAttribute('rotation', {x:r.x, y:this.startRotY + delta, z:r.z});
-      };
-      const onEnd = ()=> this.active = false;
-      window.addEventListener('touchstart', onStart, {passive:false});
-      window.addEventListener('touchmove',  onMove,  {passive:false});
-      window.addEventListener('touchend',   onEnd);
-      window.addEventListener('touchcancel',onEnd);
-    }
-  });
+      <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+      <a-entity
+        light="type: directional; intensity: 0.8"
+        position="1 2 1"
+      ></a-entity>
+      <a-entity
+        light="type: point; intensity: 0.5; color: #a8b3ff"
+        position="0 2 0"
+      ></a-entity>
 
-  // ---------- 5) Spin toggler + random color (hooked to taps) ----------
-  AFRAME.registerComponent('spin-toggle', {
-    schema:{speed:{default:4000}},
-    init(){
-      this.spinning = false;
-      this.el.addEventListener('toggle-spin', ()=> {
-        this.spinning = !this.spinning;
-        if (this.spinning) {
-          this.el.setAttribute('animation__spin',
-            `property: rotation; to: 0 360 0; loop: true; dur: ${this.data.speed}`);
-        } else {
-          this.el.removeAttribute('animation__spin');
-        }
-      });
-      this.el.addEventListener('random-color', ()=> {
-        const colors = ['#4CC3D9','#FFC65D','#7BC8A4','#EF2D5E','#FFFFFF'];
-        const c = colors[Math.floor(Math.random()*colors.length)];
-        this.el.setAttribute('material','color',c);
-      });
-    }
-  });
-  </script>
-</head>
-<body>
-  <!-- HUD -->
-  <div class="hud" id="hud">
-    <button id="btn-rot-l">⟲</button>
-    <button id="btn-rot-r">⟳</button>
-    <button id="btn-scale--">−</button>
-    <button id="btn-scale-+">＋</button>
-    <button id="btn-color">🎨</button>
-  </div>
+      <a-nft
+        type="nft"
+        url="markers/journal/journal"
+        smooth="true"
+        smoothCount="20"
+        smoothTolerance="0.5"
+        smoothThreshold="10"
+        data-marker-id="journal"
+      >
+        <a-entity
+          position="40 -1080 0"
+          rotation="90 0 0"
+          scale="760 760 760"
+          fragment-collector="fragmentId: journal; narrativeText: A locked journal. The first memory begins here..."
+          class="interactive"
+          visible="true"
+        >
+          <a-box
+            position="0 0 0"
+            width="1.5"
+            height="1.5"
+            depth="0.5"
+            material="opacity: 0; transparent: true"
+          ></a-box>
 
-  <a-scene
-    embedded
-    renderer="colorManagement: true; physicallyCorrectLights: true"
-    xr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; detectionMode: mono; debugUIEnabled: false">
+          <!-- Visible rotating box -->
+          <a-box
+            position="0 0 0"
+            width="0.5"
+            height="0.7"
+            depth="0.1"
+            material="color: #8B4513; metalness: 0.3; roughness: 0.7"
+          >
+            <a-animation
+              attribute="rotation"
+              to="0 360 0"
+              dur="4000"
+              repeat="indefinite"
+              easing="linear"
+            ></a-animation>
+          </a-box>
 
-    <!-- Cursor ray for mouse/touch (A-Frame builds a raycaster object3D for us) -->
-    <a-entity id="ray" cursor="rayOrigin: mouse" raycaster="objects: .raytarget"></a-entity>
+          <a-text
+            value="JOURNAL"
+            align="center"
+            color="#FFD700"
+            width="4"
+            position="0 0.6 0"
+            side="double"
+            shader="flat"
+          ></a-text>
+        </a-entity>
+      </a-nft>
 
-    <!-- Lights -->
-    <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-    <a-entity light="type: directional; intensity: 0.6" position="0 1 1"></a-entity>
+      <!-- COMMENTED OUT - Create toy marker first -->
+      <!-- <a-nft
+        type="nft"
+        url="markers/toy/toy"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: toy"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: toy; narrativeText: A worn childhood toy. It smells like distant summers..."
+          unlock-trigger="requiredFragments: journal"
+          rotate-slow="speed: 8000"
+          glow-ring="color: #FFB6C1"
+        >
+          <a-sphere
+            position="0 0 0"
+            radius="0.3"
+            material="color: #FFB6C1; metalness: 0.2; roughness: 0.8; emissive: #FFB6C1; emissiveIntensity: 0.2"
+            segments-width="16"
+            segments-height="12"
+          >
+          </a-sphere>
+          <a-text
+            value="Toy"
+            align="center"
+            color="#ffffff"
+            width="2"
+            position="0 0.5 0"
+          ></a-text>
+        </a-entity>
+      </a-nft> -->
 
-    <!-- Marker -->
-    <a-marker preset="hiro" id="marker">
+      <!-- COMMENTED OUT - Create photo marker first -->
+      <!-- <a-nft
+        type="nft"
+        url="markers/photo/photo"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: photo"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: photo; narrativeText: A faded photograph. Two smiling faces, frozen in time..."
+          unlock-trigger="requiredFragments: toy"
+          pulse-animation="speed: 1800"
+          glow-ring="color: #F5DEB3"
+        >
+          <a-plane
+            position="0 0 0"
+            width="0.6"
+            height="0.4"
+            material="color: #F5DEB3; metalness: 0.1; roughness: 0.9; emissive: #F5DEB3; emissiveIntensity: 0.2"
+            rotation="0 0 0"
+          >
+          </a-plane>
+          <a-text
+            value="Photo"
+            align="center"
+            color="#000000"
+            width="2"
+            position="0 0.35 0.01"
+          ></a-text>
+        </a-entity>
+      </a-nft> -->
 
-      <!-- Invisible drag plane anchored to marker -->
-      <a-plane id="dragplane" class="raytarget"
-               position="0 0 0" rotation="-90 0 0" width="2" height="2"
-               material="color: #000; opacity: 0; transparent: true"></a-plane>
+      <!-- COMMENTED OUT - Create letter marker first -->
+      <!-- <a-nft
+        type="nft"
+        url="markers/letter/letter"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: letter"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: letter; narrativeText: An unopened letter. Some words are better left unsaid..."
+          unlock-trigger="requiredFragments: toy"
+          pulse-animation="speed: 2200"
+          glow-ring="color: #FFFACD"
+        >
+          <a-plane
+            position="0 0 0"
+            width="0.4"
+            height="0.6"
+            material="color: #FFFACD; metalness: 0.1; roughness: 0.9; emissive: #FFFACD; emissiveIntensity: 0.2"
+            rotation="0 0 0"
+          >
+          </a-plane>
+          <a-text
+            value="Letter"
+            align="center"
+            color="#8B0000"
+            width="2"
+            position="0 0.4 0.01"
+          ></a-text>
+        </a-entity>
+      </a-nft> -->
 
-      <!-- Interactive object -->
-      <a-box id="cube" class="raytarget"
-             position="0 0.25 0" depth="0.5" height="0.5" width="0.5"
-             material="metalness:0.1; roughness:0.6; color:#4CC3D9"
-             tap-gestures spin-toggle
-             drag-on-plane="plane: #dragplane; yOffset: 0.25; radius: 0.6"
-             pinch-scale twist-rotate>
-      </a-box>
+      <!-- COMMENTED OUT - Create music-box marker first -->
+      <!-- <a-nft
+        type="nft"
+        url="markers/music-box/music-box"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: music-box"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: music-box; narrativeText: A delicate music box. Its melody echoes a happy ending..."
+          unlock-trigger="requiredFragments: photo"
+          rotate-slow="speed: 12000"
+          glow-ring="color: #DDA0DD"
+        >
+          <a-box
+            position="0 0 0"
+            width="0.4"
+            height="0.3"
+            depth="0.4"
+            material="color: #DDA0DD; metalness: 0.4; roughness: 0.6; emissive: #DDA0DD; emissiveIntensity: 0.3"
+          >
+          </a-box>
+          <a-cylinder
+            position="0 0.2 0"
+            radius="0.1"
+            height="0.05"
+            material="color: #FFD700; metalness: 0.8; roughness: 0.2"
+          >
+          </a-cylinder>
+          <a-text
+            value="Music Box"
+            align="center"
+            color="#ffffff"
+            width="2"
+            position="0 0.5 0"
+          ></a-text>
+        </a-entity>
+      </a-nft>
 
-      <!-- Marker center dot (optional) -->
-      <a-cylinder radius="0.01" height="0.001" color="#888"></a-cylinder>
-    </a-marker>
+      <a-nft
+        type="nft"
+        url="markers/key/key"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: key"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: key; narrativeText: An old key. Some doors are meant to stay locked..."
+          unlock-trigger="requiredFragments: letter"
+          rotate-slow="speed: 10000"
+          glow-ring="color: #C0C0C0"
+        >
+          <a-cylinder
+            position="0 0 0"
+            radius="0.05"
+            height="0.6"
+            material="color: #C0C0C0; metalness: 0.9; roughness: 0.3; emissive: #C0C0C0; emissiveIntensity: 0.4"
+            rotation="0 0 90"
+          >
+          </a-cylinder>
+          <a-torus
+            position="-0.3 0 0"
+            radius="0.1"
+            radius-tubular="0.03"
+            material="color: #C0C0C0; metalness: 0.9; roughness: 0.3; emissive: #C0C0C0; emissiveIntensity: 0.4"
+            rotation="0 90 0"
+          >
+          </a-torus>
+          <a-text
+            value="Key"
+            align="center"
+            color="#ffffff"
+            width="2"
+            position="0 0.4 0"
+          ></a-text>
+        </a-entity>
+      </a-nft> -->
 
-    <a-entity camera></a-entity>
-  </a-scene>
+      <!-- COMMENTED OUT - Create key marker first -->
+      <!-- <a-nft
+        type="nft"
+        url="markers/key/key"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        marker-tracker="markerId: key"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="20 20 20"
+          fragment-collector="fragmentId: key; narrativeText: An old key. Some doors are meant to stay locked..."
+          unlock-trigger="requiredFragments: letter"
+          rotate-slow="speed: 10000"
+          glow-ring="color: #C0C0C0"
+        >
+          <a-cylinder
+            position="0 0 0"
+            radius="0.05"
+            height="0.6"
+            material="color: #C0C0C0; metalness: 0.9; roughness: 0.3; emissive: #C0C0C0; emissiveIntensity: 0.4"
+            rotation="0 0 90"
+          >
+          </a-cylinder>
+          <a-torus
+            position="-0.3 0 0"
+            radius="0.1"
+            radius-tubular="0.03"
+            material="color: #C0C0C0; metalness: 0.9; roughness: 0.3; emissive: #C0C0C0; emissiveIntensity: 0.4"
+            rotation="0 90 0"
+          >
+          </a-torus>
+          <a-text
+            value="Key"
+            align="center"
+            color="#ffffff"
+            width="2"
+            position="0 0.4 0"
+          ></a-text>
+        </a-entity>
+      </a-nft> -->
 
-  <script>
-    const hud  = document.getElementById('hud');
-    const cube = document.getElementById('cube');
+      <a-entity camera></a-entity>
+    </a-scene>
 
-    // Buttons
-    document.getElementById('btn-rot-l').addEventListener('click', () => nudgeRot(-15));
-    document.getElementById('btn-rot-r').addEventListener('click', () => nudgeRot( 15));
-    function nudgeRot(delta){
-      const r = cube.getAttribute('rotation');
-      cube.setAttribute('rotation', {x:r.x, y:r.y + delta, z:r.z});
-    }
-
-    document.getElementById('btn-scale--').addEventListener('click', () => nudgeScale(0.9));
-    document.getElementById('btn-scale-+').addEventListener('click', () => nudgeScale(1.1));
-    function nudgeScale(mult){
-      const s = cube.getAttribute('scale');
-      cube.setAttribute('scale', {
-        x: clamp(s.x * mult, 0.2, 3),
-        y: clamp(s.y * mult, 0.2, 3),
-        z: clamp(s.z * mult, 0.2, 3)
-      });
-    }
-
-    document.getElementById('btn-color').addEventListener('click', () => cube.emit('random-color'));
-
-    // Gesture hooks
-    cube.addEventListener('tap',       () => cube.emit('toggle-spin'));        // single tap: spin on/off
-    cube.addEventListener('doubletap', () => cube.emit('random-color'));       // double tap: recolor
-    cube.addEventListener('longpress', () => hud.classList.toggle('hidden'));  // long press: show/hide HUD
-  </script>
-</body>
+    <script src="js/game-state.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>
