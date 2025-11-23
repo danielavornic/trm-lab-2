@@ -95,7 +95,6 @@ setTimeout(() => {
   });
 }, 2500);
 
-// Listen for game state updates
 window.addEventListener("gamestateupdate", (e) => {
   const collected = e.detail.collected.length;
   log(`Progress: ${collected}/6 fragments`);
