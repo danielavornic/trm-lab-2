@@ -5,7 +5,8 @@ AFRAME.registerComponent("fragment-collector", {
   },
 
   init() {
-    this.collected = false;
+    // Check if this fragment was already collected
+    this.collected = GameState.isCollected(this.data.fragmentId);
     this.el.classList.add("interactive");
     this.collect = this.collect.bind(this);
   },

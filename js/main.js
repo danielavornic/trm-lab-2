@@ -7,7 +7,6 @@ function log(msg) {
 
 log("Scripts loaded");
 
-// Wait for scene to be ready, then hide loading screen
 window.addEventListener("load", () => {
   setTimeout(() => {
     const loadingScreen = document.getElementById("loadingScreen");
@@ -36,28 +35,22 @@ setTimeout(() => {
         markerId = trackerAttr ? trackerAttr.split(":")[1]?.trim() : "unknown";
       }
 
-      // Find the fragment component
       const fragment = marker.querySelector("[fragment-collector]");
       if (fragment) {
         const component = fragment.components["fragment-collector"];
         activeFragment = component;
 
-        // Check if already collected
         if (component.collected) {
           log(`✓ ${markerId} - Already collected`);
           tapArea.style.display = "none";
           overlayText.style.display = "none";
-        }
-        // Check if dependencies are met
-        else if (!GameState.canShow(markerId)) {
-          log(`✓ ${markerId} - Locked (collect journal first)`);
+        } else if (!GameState.canShow(markerId)) {
+          log(`✓ ${markerId} - Locked (collect prerequisites first)`);
           tapArea.style.display = "none";
           overlayText.style.display = "block";
           overlayText.textContent = "LOCKED";
           overlayText.style.color = "#ff6b6b"; // Red for locked
-        }
-        // Ready to collect
-        else {
+        } else {
           log(`✓ ${markerId} - Tap to collect`);
           tapArea.style.display = "block";
           overlayText.style.display = "block";
@@ -90,7 +83,6 @@ setTimeout(() => {
         log(`Collecting ${fragmentId}...`);
         activeFragment.collect();
 
-        // Update message after collection
         setTimeout(() => {
           tapArea.style.display = "none";
           overlayText.style.display = "none";

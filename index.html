@@ -75,6 +75,27 @@
         Debug: Ready
       </div>
 
+      <!-- AR Overlay Text (AR.js recommended approach) -->
+      <div
+        style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: gold;
+          font-size: 24px;
+          font-weight: bold;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+          z-index: 60;
+          pointer-events: none;
+          display: none;
+          font-family: Arial, sans-serif;
+        "
+        id="arOverlayText"
+      >
+        UNLOCK
+      </div>
+
       <div class="ar-tap-area" id="arTapArea"></div>
     </div>
 
@@ -106,9 +127,9 @@
         data-marker-id="journal"
       >
         <a-entity
-          position="40 -1080 0"
+          position="40 -400 0"
           rotation="90 0 0"
-          scale="760 760 760"
+          scale="300 300 300"
           fragment-collector="fragmentId: journal; narrativeText: A locked journal. The first memory begins here..."
           class="interactive"
           visible="true"
@@ -121,70 +142,107 @@
             material="opacity: 0; transparent: true"
           ></a-box>
 
-          <!-- Visible rotating box -->
+          <!-- Crystal/diamond shape for journal -->
+          <a-octahedron
+            position="0 0 0"
+            radius="0.35"
+            material="color: #8B4513; metalness: 0.7; roughness: 0.2"
+          >
+            <a-animation
+              attribute="rotation"
+              to="0 360 360"
+              dur="5000"
+              repeat="indefinite"
+              easing="linear"
+            ></a-animation>
+          </a-octahedron>
+        </a-entity>
+      </a-nft>
+
+      <a-nft
+        type="nft"
+        url="markers/toy/toy"
+        smooth="true"
+        smoothCount="20"
+        smoothTolerance="0.5"
+        smoothThreshold="10"
+        data-marker-id="toy"
+      >
+        <a-entity
+          position="0 -400 0"
+          rotation="90 0 0"
+          scale="300 300 300"
+          fragment-collector="fragmentId: toy; narrativeText: A worn childhood toy. It smells like distant summers..."
+          class="interactive"
+          visible="true"
+        >
           <a-box
             position="0 0 0"
-            width="0.5"
-            height="0.7"
-            depth="0.1"
-            material="color: #8B4513; metalness: 0.3; roughness: 0.7"
+            width="1.5"
+            height="1.5"
+            depth="0.5"
+            material="opacity: 0; transparent: true"
+          ></a-box>
+
+          <a-sphere
+            position="0 0 0"
+            radius="0.3"
+            material="color: #FFB6C1; metalness: 0.2; roughness: 0.8"
           >
             <a-animation
               attribute="rotation"
               to="0 360 0"
-              dur="4000"
+              dur="3000"
               repeat="indefinite"
               easing="linear"
             ></a-animation>
-          </a-box>
-
-          <a-text
-            value="JOURNAL"
-            align="center"
-            color="#FFD700"
-            width="4"
-            position="0 0.6 0"
-            side="double"
-            shader="flat"
-          ></a-text>
+          </a-sphere>
         </a-entity>
       </a-nft>
 
-      <!-- COMMENTED OUT - Create toy marker first -->
-      <!-- <a-nft
+      <a-nft
         type="nft"
-        url="markers/toy/toy"
+        url="markers/photo/photo"
         smooth="true"
-        smoothCount="10"
-        smoothTolerance="0.01"
-        smoothThreshold="5"
-        marker-tracker="markerId: toy"
+        smoothCount="20"
+        smoothTolerance="0.5"
+        smoothThreshold="10"
+        data-marker-id="photo"
       >
         <a-entity
-          position="0 0 0"
-          scale="20 20 20"
-          fragment-collector="fragmentId: toy; narrativeText: A worn childhood toy. It smells like distant summers..."
-          unlock-trigger="requiredFragments: journal"
-          rotate-slow="speed: 8000"
-          glow-ring="color: #FFB6C1"
+          position="80 -400 0"
+          rotation="90 0 0"
+          scale="250 250 250"
+          fragment-collector="fragmentId: photo; narrativeText: A faded photograph. Two smiling faces, frozen in time..."
+          class="interactive"
+          visible="true"
         >
-          <a-sphere
+          <a-box
             position="0 0 0"
-            radius="0.3"
-            material="color: #FFB6C1; metalness: 0.2; roughness: 0.8; emissive: #FFB6C1; emissiveIntensity: 0.2"
-            segments-width="16"
-            segments-height="12"
+            width="1.5"
+            height="1.5"
+            depth="0.5"
+            material="opacity: 0; transparent: true"
+          ></a-box>
+
+          <!-- Elegant white torus (donut shape) for photo -->
+          <a-torus
+            position="0 0 0"
+            radius="0.4"
+            radius-tubular="0.08"
+            material="color: #FFFFFF; metalness: 0.3; roughness: 0.7"
+            rotation="0 0 0"
           >
-          </a-sphere>
-          <a-text
-            value="Toy"
-            align="center"
-            color="#ffffff"
-            width="2"
-            position="0 0.5 0"
-          ></a-text>
+            <a-animation
+              attribute="rotation"
+              to="0 360 0"
+              dur="5000"
+              repeat="indefinite"
+              easing="linear"
+            ></a-animation>
+          </a-torus>
         </a-entity>
-      </a-nft> -->
+      </a-nft>
 
       <!-- COMMENTED OUT - Create photo marker first -->
       <!-- <a-nft
