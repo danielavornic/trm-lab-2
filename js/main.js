@@ -24,6 +24,7 @@ let activeFragment = null;
 setTimeout(() => {
   const markers = document.querySelectorAll("a-nft");
   const tapArea = document.getElementById("arTapArea");
+  const overlayText = document.getElementById("arOverlayText");
 
   log(`Tracking ${markers.length} markers`);
 
@@ -40,8 +41,29 @@ setTimeout(() => {
       if (fragment) {
         const component = fragment.components["fragment-collector"];
         activeFragment = component;
-        tapArea.style.display = "block";
-        log(`✓ ${markerId} - Tap to collect`);
+
+        // Check if already collected
+        if (component.collected) {
+          log(`✓ ${markerId} - Already collected`);
+          tapArea.style.display = "none";
+          overlayText.style.display = "none";
+        }
+        // Check if dependencies are met
+        else if (!GameState.canShow(markerId)) {
+          log(`✓ ${markerId} - Locked (collect journal first)`);
+          tapArea.style.display = "none";
+          overlayText.style.display = "block";
+          overlayText.textContent = "LOCKED";
+          overlayText.style.color = "#ff6b6b"; // Red for locked
+        }
+        // Ready to collect
+        else {
+          log(`✓ ${markerId} - Tap to collect`);
+          tapArea.style.display = "block";
+          overlayText.style.display = "block";
+          overlayText.textContent = "UNLOCK";
+          overlayText.style.color = "gold"; // Gold for unlock
+        }
       }
     });
 
@@ -54,6 +76,7 @@ setTimeout(() => {
 
       activeFragment = null;
       tapArea.style.display = "none";
+      overlayText.style.display = "none";
       log(`✗ ${markerId} lost`);
     });
   });
@@ -61,8 +84,21 @@ setTimeout(() => {
   // Handle taps on the overlay - AR.js recommended pattern
   tapArea.addEventListener("click", () => {
     if (activeFragment && !activeFragment.collected) {
-      log(`Collecting ${activeFragment.data.fragmentId}`);
-      activeFragment.collect();
+      const fragmentId = activeFragment.data.fragmentId;
+
+      if (GameState.canShow(fragmentId)) {
+        log(`Collecting ${fragmentId}...`);
+        activeFragment.collect();
+
+        // Update message after collection
+        setTimeout(() => {
+          tapArea.style.display = "none";
+          overlayText.style.display = "none";
+          log(`✓ ${fragmentId} - Collected!`);
+        }, 100);
+      } else {
+        log("Locked - collect prerequisites first");
+      }
     }
   });
 }, 2500);
