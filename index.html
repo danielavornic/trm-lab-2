@@ -225,7 +225,6 @@
             material="opacity: 0; transparent: true"
           ></a-box>
 
-          <!-- Elegant white torus (donut shape) for photo -->
           <a-torus
             position="0 0 0"
             radius="0.4"
@@ -244,7 +243,75 @@
         </a-entity>
       </a-nft>
 
-      <!-- COMMENTED OUT - Create photo marker first -->
+      <a-nft
+        type="nft"
+        url="markers/music-box/music-box"
+        smooth="true"
+        smoothCount="20"
+        smoothTolerance="0.5"
+        smoothThreshold="10"
+        data-marker-id="music-box"
+      >
+        <a-entity
+          position="100 -510 10"
+          rotation="90 0 0"
+          scale="270 270 270"
+          fragment-collector="fragmentId: music-box; narrativeText: A delicate music box. Its melody echoes a happy ending..."
+          class="interactive"
+          visible="true"
+        >
+          <a-box
+            position="0 0 0"
+            width="1.5"
+            height="1.5"
+            depth="0.5"
+            material="opacity: 0; transparent: true"
+          ></a-box>
+
+          <a-entity position="0 0 0">
+            <a-box
+              position="0 0 0"
+              width="0.6"
+              height="0.4"
+              depth="0.3"
+              material="color: #8B4513; metalness: 0.4; roughness: 0.6"
+            ></a-box>
+
+            <!-- Golden cylinders for mechanism -->
+            <a-cylinder
+              position="0 0.15 0"
+              radius="0.08"
+              height="0.1"
+              material="color: #FFD700; metalness: 0.8; roughness: 0.2"
+            ></a-cylinder>
+
+            <a-cylinder
+              position="-0.15 0.15 0"
+              radius="0.06"
+              height="0.08"
+              material="color: #FFD700; metalness: 0.8; roughness: 0.2"
+            ></a-cylinder>
+
+            <a-cylinder
+              position="0.15 0.15 0"
+              radius="0.06"
+              height="0.08"
+              material="color: #FFD700; metalness: 0.8; roughness: 0.2"
+            ></a-cylinder>
+
+            <!-- Gentle rotation animation -->
+            <a-animation
+              attribute="rotation"
+              to="0 360 0"
+              dur="7000"
+              repeat="indefinite"
+              easing="linear"
+            ></a-animation>
+          </a-entity>
+        </a-entity>
+      </a-nft>
+
+      <!-- COMMENTED OUT - Create letter marker first -->
       <!-- <a-nft
         type="nft"
         url="markers/photo/photo"
